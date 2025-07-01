@@ -1,0 +1,36 @@
+2025/07/01-16:01:33.004 4c8c Reusing MANIFEST /Users/allexandre/DeliveryKing/backend/tokens/deliveryking/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/07/01-16:01:33.005 4c8c Recovering log #583
+2025/07/01-16:01:33.010 4c8c Reusing old log /Users/allexandre/DeliveryKing/backend/tokens/deliveryking/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000583.log 
+2025/07/01-16:01:33.010 4c8c Delete type=2 #582
+2025/07/01-16:01:33.018 4c9c Level-0 table #588: started
+2025/07/01-16:01:33.030 4c9c Level-0 table #588: 53526 bytes OK
+2025/07/01-16:01:33.035 4c9c Delete type=0 #583
+2025/07/01-16:01:33.036 4c8c Manual compaction at level-0 from '\x00\xbe\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\xbf\x00\x00\x00' @ 0 : 0; will stop at '\x00\xc0\x00\x00\xc8\x16\x00v\x00e\x00r\x00i\x00f\x00i\x00e\x00d\x00-\x00b\x00u\x00s\x00i\x00n\x00e\x00s\x00s\x00-\x00n\x00a\x00m\x00e' @ 1019996 : 1
+2025/07/01-16:01:33.036 4c8c Compacting 1@0 + 1@1 files
+2025/07/01-16:01:33.042 4c8c Generated table #589@0: 4793 keys, 47635 bytes
+2025/07/01-16:01:33.042 4c8c Compacted 1@0 + 1@1 files => 47635 bytes
+2025/07/01-16:01:33.045 4c8c compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/07/01-16:01:33.045 4c8c Delete type=2 #588
+2025/07/01-16:01:33.046 4c9c Manual compaction at level-0 from '\x00\xc0\x00\x00\xc8\x16\x00v\x00e\x00r\x00i\x00f\x00i\x00e\x00d\x00-\x00b\x00u\x00s\x00i\x00n\x00e\x00s\x00s\x00-\x00n\x00a\x00m\x00e' @ 1019996 : 1 .. '\x00\xbf\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/07/01-16:01:33.048 4c8c Level-0 table #591: started
+2025/07/01-16:01:33.050 4c8c Level-0 table #591: 4619 bytes OK
+2025/07/01-16:01:33.052 4c8c Delete type=2 #585
+2025/07/01-16:01:33.052 4c8c Delete type=0 #587
+2025/07/01-16:01:33.054 4c9c Manual compaction at level-0 from '\x00\xb1\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\xb2\x00\x00\x00' @ 0 : 0; will stop at '\x00\xb1\x06 \x03\x00\x00\x00\x00\x00\x80V@\x00\x01\x0b\x00I\x00d\x00T\x00t\x00l\x009\x000\x00D\x00a\x00y\x00s' @ 1024695 : 0
+2025/07/01-16:01:33.054 4c9c Compacting 1@0 + 1@1 files
+2025/07/01-16:01:33.059 4c9c Generated table #592@0: 4482 keys, 38094 bytes
+2025/07/01-16:01:33.059 4c9c Compacted 1@0 + 1@1 files => 38094 bytes
+2025/07/01-16:01:33.061 4c9c compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/07/01-16:01:33.062 4c9c Delete type=2 #591
+2025/07/01-16:01:33.062 4c8c Manual compaction at level-0 from '\x00\xb1\x06 \x03\x00\x00\x00\x00\x00\x80V@\x00\x01\x0b\x00I\x00d\x00T\x00t\x00l\x009\x000\x00D\x00a\x00y\x00s' @ 1024695 : 0 .. '\x00\xb2\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/07/01-16:01:33.062 4c8c Level-0 table #594: started
+2025/07/01-16:01:33.065 4c8c Level-0 table #594: 505 bytes OK
+2025/07/01-16:01:33.071 4c8c Delete type=2 #589
+2025/07/01-16:01:33.071 4c8c Delete type=0 #590
+2025/07/01-16:01:33.072 4c8c Manual compaction at level-0 from '\x00\xbd\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\xbe\x00\x00\x00' @ 0 : 0; will stop at '\x00\xbd\x02\x02\x03\x00\x00\x00\x00\x00\x00\xf0?' @ 1024724 : 0
+2025/07/01-16:01:33.072 4c8c Compacting 1@0 + 1@1 files
+2025/07/01-16:01:33.078 4c8c Generated table #595@0: 4457 keys, 37250 bytes
+2025/07/01-16:01:33.078 4c8c Compacted 1@0 + 1@1 files => 37250 bytes
+2025/07/01-16:01:33.081 4c8c compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/07/01-16:01:33.082 4c8c Delete type=2 #594
+2025/07/01-16:01:33.083 4c8c Manual compaction at level-0 from '\x00\xbd\x02\x02\x03\x00\x00\x00\x00\x00\x00\xf0?' @ 1024724 : 0 .. '\x00\xbe\x00\x00\x00' @ 0 : 0; will stop at (end)

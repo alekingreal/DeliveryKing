@@ -1,0 +1,476 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model CodigoVerificacao {
+  userId Int @id
+  codigo String
+  user   User @relation(fields: [userId], references: [id])
+}
+
+
+model User {
+  id              Int               @id @default(autoincrement())
+  name            String
+  email           String            @unique
+  password        String
+  city            String?
+  phoneTemp       String? // <- número temporário a confirmar
+  cpf             String            @unique
+  phone           String            @unique
+  avatarUrl       String? 
+  inviteCode      String?           @unique
+  invitedBy       String?
+  CarteiraDK      CarteiraDK?
+  CarteiraReal    CarteiraReal?
+  deliveryPerson DeliveryPerson? @relation("DeliveryPersonUser")
+  DkCoinTransacao DkCoinTransacao[]
+  flagsSuspeita   FlagSuspeita[]
+  LimiteSaqueDK   LimiteSaqueDK?
+  LogFinanceiroDK LogFinanceiroDK[]
+  orders          Order[]
+  passageiros     Passageiro[]
+  Recebiveis      Recebivel[]
+  recompras       RecompraDK[]
+  rewards         RewardsDK?
+  saques          SaqueDK[]
+  TransacaoDK     TransacaoDK[]
+  TransacaoReal   TransacaoReal[]
+  codigoVerificacao CodigoVerificacao?
+  recoveryTokens  RecoveryToken[]
+
+}
+
+model Restaurant {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String
+  city        String?
+  deliveries  Delivery[]
+  Order       Order[]
+  products    Product[]
+}
+
+model Product {
+  id           Int        @id @default(autoincrement())
+  name         String
+  description  String
+  price        Float
+  imageUrl     String
+  restaurantId Int
+  category     String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+}
+
+model DeliveryPerson {
+  id                       Int        @id @default(autoincrement())
+  name                     String
+  vehicle                  String
+  available                Boolean    @default(true)
+  balance                  Float      @default(0.0)
+  pending                  Float      @default(0.0)
+  locationLat              Float?
+  locationLng              Float?
+  cpf                      String
+  punishmentLevel          Int        @default(0)
+  violations               Int        @default(0)
+  blockUntil               DateTime?
+  aprovado                 Boolean    @default(false)
+  certidaoCriminalUrl      String?
+  cnhUrl                   String?
+  comprovanteResidenciaUrl String?
+  fotoMotoristaUrl         String?
+  fotoVeiculoUrl           String?
+  avatarUrl                String? 
+  modoAtual                String?
+  placaVeiculo             String?
+  podeCarroTaxi            Boolean    @default(false)
+  podeDelivery             Boolean    @default(false)
+  podeFrete                Boolean    @default(false)
+  podeMotoTaxi             Boolean    @default(false)
+  userId                   Int        @unique
+  currentLat               Float?
+  currentLng               Float?
+  lastUpdatedAt            DateTime?
+  deliveries               Delivery[]
+  reservedDeliveries       Delivery[] @relation("ReservedDelivery")
+  user                     User @relation("DeliveryPersonUser", fields: [userId], references: [id])
+
+}
+
+model Delivery {
+  id                       Int             @id @default(autoincrement())
+  deliveryPersonId         Int?
+  distanceKm               Float
+  fee                      Float
+  status                   String
+  deliveryPersonPayout     Float           @default(0)
+  platformCommission       Float           @default(0)
+  reservedDeliveryPersonId Int?
+  cancelReason             String?
+  createdAt                DateTime        @default(now())
+  destinoLat               Float?
+  destinoLng               Float?
+  localPartidaLat          Float
+  localPartidaLng          Float
+  maxPessoas               Int?
+  tipoRota                 String?
+  tipoServico              String
+  updatedAt                DateTime        @updatedAt
+  dropoffLocation          String?
+  pickupLocation           String?
+  tempoParaIniciar         Float?
+  restaurantId             Int
+  reservedUntil            DateTime?
+  deliveryPerson           DeliveryPerson? @relation(fields: [deliveryPersonId], references: [id])
+  reservedDeliveryPerson   DeliveryPerson? @relation("ReservedDelivery", fields: [reservedDeliveryPersonId], references: [id])
+  restaurant               Restaurant      @relation(fields: [restaurantId], references: [id])
+  orders                   Order[]
+  passageiros              Passageiro[]
+}
+
+model Passageiro {
+  id              String    @id @default(uuid())
+  userId          Int
+  deliveryId      Int?
+  posicaoFila     Int?
+  status          String
+  localPartidaLat Float
+  localPartidaLng Float
+  delivery        Delivery? @relation(fields: [deliveryId], references: [id])
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+model Order {
+  id              Int       @id @default(autoincrement())
+  total           Float
+  deliveryId      Int?
+  dropoffLocation String
+  pickupLocation  String
+  entregaVia      String    @default("manual")
+  platformCommission Float  @default(0)
+  pickupLat       Float?
+  pickupLng       Float?
+  statusCliente   OrderClienteStatus @default(aguardando)
+  status          OrderStatus
+  deliveryFee     Float?
+  moedaPagamento  String    @default("real")
+  dropoffLat      Float?
+  dropoffLng      Float?
+  reservedDeliveryPersonId Int?
+  reservedUntil   DateTime?
+  restaurantId    Int
+  valorPagoDK     Float     @default(0)  // 🔥 novo campo
+  valorPagoReal   Float     @default(0)  // 🔥 novo campo
+  valorPagoCartao Float     @default(0)  // 🔥 novo campo
+  delivery        Delivery? @relation(fields: [deliveryId], references: [id])
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+model CarteiraDK {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  saldo     Float    @default(0)
+  updatedAt DateTime @updatedAt
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model RewardsDK {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  pontos    Int      @default(0)
+  nivel     String   @default("Bronze")
+  updatedAt DateTime @updatedAt
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model SaqueDK {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  valor      Float
+  status     String   @default("pendente")
+  criadoEm   DateTime @default(now())
+  chavePix   String?
+  pixId      String?
+  tentativas Int?     @default(0)
+  observacao String?
+  User       User     @relation(fields: [userId], references: [id])
+}
+
+model CotacaoDK {
+  id         Int      @id @default(autoincrement())
+  valorAtual Float
+  variacao   Float
+  data       DateTime @default(now())
+}
+
+model TransacaoDK {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tipo      String
+  valorDK   Float
+  valorReal Float?
+  descricao String?
+  data      DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model TransferenciaDK {
+  id             Int      @id @default(autoincrement())
+  remetenteId    Int
+  destinatarioId Int
+  valorDK        Float
+  data           DateTime @default(now())
+}
+
+model SupplyDK {
+  id          Int      @id @default(autoincrement())
+  totalSupply Float
+  circulating Float
+  updatedAt   DateTime @updatedAt
+  reserved    Float
+}
+
+model RecompraDK {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  valorDK   Float
+  valorReal Float
+  status    String    @default("pendente")
+  criadoEm  DateTime  @default(now())
+  pagoEm    DateTime?
+  User      User      @relation(fields: [userId], references: [id])
+}
+
+model HubDK {
+  id                    Int                           @id @default(autoincrement())
+  cidade                String
+  estado                String
+  endereco              String
+  latitude              Float
+  longitude             Float
+  ativo                 Boolean                       @default(true)
+  createdAt             DateTime                      @default(now())
+  transferenciasDestino TransferenciaIntermunicipal[] @relation("Destino")
+  transferenciasOrigem  TransferenciaIntermunicipal[] @relation("Origem")
+}
+
+model MotoristaFrotaDK {
+  id             Int                           @id @default(autoincrement())
+  nome           String
+  cpf            String                        @unique
+  telefone       String
+  tipoVeiculo    String
+  cidadeBase     String
+  ativo          Boolean                       @default(true)
+  createdAt      DateTime                      @default(now())
+  transferencias TransferenciaIntermunicipal[]
+}
+
+model TransferenciaIntermunicipal {
+  id                Int              @id @default(autoincrement())
+  hubOrigemId       Int
+  hubDestinoId      Int
+  motoristaId       Int
+  dataColeta        DateTime
+  quantidadePacotes Int
+  status            String
+  createdAt         DateTime         @default(now())
+  hubDestino        HubDK            @relation("Destino", fields: [hubDestinoId], references: [id])
+  hubOrigem         HubDK            @relation("Origem", fields: [hubOrigemId], references: [id])
+  motorista         MotoristaFrotaDK @relation(fields: [motoristaId], references: [id])
+}
+
+model LogisticaHub {
+  id     Int    @id @default(autoincrement())
+  cidade String
+  estado String
+}
+
+model MotoristaLogistica {
+  id         Int    @id @default(autoincrement())
+  nome       String
+  telefone   String
+  cidadeBase String
+}
+
+model PacoteLogisticoDK {
+  id           Int      @id @default(autoincrement())
+  pedidoId     Int
+  hubOrigemId  Int
+  hubDestinoId Int
+  status       String   @default("aguardando_coleta")
+  pesoKg       Float
+  criadoEm     DateTime @default(now())
+}
+
+model ReceitaPlataformaDK {
+  id       Int      @id @default(autoincrement())
+  tipo     String
+  origemId Int?
+  data     DateTime @default(now())
+  valor    Float
+}
+
+model AdminUser {
+  id         Int              @id @default(autoincrement())
+  email      String           @unique
+  password   String
+  role       Role             @default(SUPORTE)
+  createdAt  DateTime         @default(now())
+  nome       String
+  logs       AdminLog[]
+  permissoes AdminPermissao[]
+}
+
+model AdminLog {
+  id        Int       @id @default(autoincrement())
+  adminId   Int
+  ip        String
+  userAgent String
+  createdAt DateTime  @default(now())
+  admin     AdminUser @relation(fields: [adminId], references: [id])
+}
+
+model ConfiguracaoDK {
+  id                Int      @id @default(autoincrement())
+  taxaCompraPercent Float
+  taxaVendaPercent  Float
+  taxaTransferencia Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model FlagSuspeita {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tipo      String
+  descricao String
+  data      DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model AdminPermissao {
+  id         Int       @id @default(autoincrement())
+  adminId    Int
+  recurso    String
+  podeLer    Boolean   @default(false)
+  podeGravar Boolean   @default(false)
+  admin      AdminUser @relation(fields: [adminId], references: [id])
+
+  @@unique([adminId, recurso])
+}
+
+model ConfiguracaoSistema {
+  id            Int      @id @default(autoincrement())
+  cotacaoBase   Float    @default(1.0)
+  limiteSaque   Float    @default(1000.0)
+  mensagemAviso String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model DkCoinTransacao {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tipo      String
+  valorDK   Float
+  valorReal Float?
+  descricao String?
+  data      DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model CarteiraReal {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  saldo     Float    @default(0)
+  bloqueado Float    @default(0)
+  updatedAt DateTime @updatedAt
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model TransacaoReal {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tipo      String
+  valor     Float
+  descricao String?
+  data      DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model Recebivel {
+  id              Int      @id @default(autoincrement())
+  pedidoId        Int
+  userIdRecebedor Int
+  valorBruto      Float
+  taxas           Float
+  valorLiquido    Float
+  status          String   @default("pendente")
+  dataDisponivel  DateTime
+  criadoEm        DateTime @default(now())
+  User            User     @relation(fields: [userIdRecebedor], references: [id])
+}
+
+model LimiteSaqueDK {
+  id           Int       @id @default(autoincrement())
+  userId       Int?      @unique
+  limiteDiario Float?    @default(5000)
+  limiteMensal Float?    @default(30000)
+  createdAt    DateTime? @default(now()) @db.Timestamp(6)
+  User         User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model LogFinanceiroDK {
+  id         Int       @id @default(autoincrement())
+  userId     Int?
+  acao       String?
+  valor      Float?
+  data       DateTime? @default(now()) @db.Timestamp(6)
+  observacao String?
+  User       User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model TesourariaDK {
+  id                  Int       @id @default(autoincrement())
+  data                DateTime? @default(now()) @db.Timestamp(6)
+  entradaBruta        Float?    @default(0)
+  comissaoPlataforma  Float?    @default(0)
+  taxasGateway        Float?    @default(0)
+  reservadoClientes   Float?    @default(0)
+  saldoLiquidoEmpresa Float?    @default(0)
+  observacao          String?
+}
+model RecoveryToken {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  token      String   @unique
+  expiresAt  DateTime
+}
+enum OrderClienteStatus {
+  aguardando
+  em_producao
+  pronto
+  em_rota
+  entregue
+}
+
+enum OrderStatus {
+  pendente
+  em_rota
+  entregue
+}
+
+enum Role {
+  ADMIN
+  SUPORTE
+  FINANCEIRO
+}

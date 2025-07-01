@@ -1,0 +1,8 @@
+version: "2"
+authtoken: 2yYudUQVeW9xElW8IngGTi00TGl_74DPWZx6XcgZnXSHuBrSZ
+tunnels:
+  deliveryking:
+    addr: 3333
+    proto: http
+    headers:
+      - ngrok-skip-browser-warning: true
