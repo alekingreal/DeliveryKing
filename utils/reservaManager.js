@@ -31,7 +31,7 @@ function limparFila(deliveryId) {
 
 async function processarFila(deliveryId) {
   const delivery = await prisma.delivery.findUnique({ where: { id: deliveryId } });
-  if (!delivery || delivery.deliveryPersonId) {
+  if (!delivery || delivery.partnerId) {
     console.log(`✅ Entrega ${deliveryId} já foi aceita, abortando fila`);
     limparFila(deliveryId);
     return;
@@ -65,7 +65,7 @@ async function processarFila(deliveryId) {
   await prisma.delivery.update({
     where: { id: deliveryId },
     data: {
-      reservedDeliveryPerson: { connect: { id: proximoId } },
+      reservedPartner: { connect: { id: proximoId } },
       reservedUntil: novaExp
     }
   });
@@ -114,13 +114,13 @@ async function tentarReiniciarFila(deliveryId) {
   try {
     const delivery = await prisma.delivery.findUnique({ where: { id: deliveryId } });
     if (!delivery) return;
-    if (delivery.deliveryPersonId) {
-      console.log(`✅ Entrega ${deliveryId} já foi aceita por entregador ${delivery.deliveryPersonId}, cancelando fila`);
+    if (delivery.partnerId) {
+      console.log(`✅ Entrega ${deliveryId} já foi aceita por entregador ${delivery.partnerId}, cancelando fila`);
       limparFila(deliveryId);
       return;
     }
 
-    const entregadores = await prisma.deliveryPerson.findMany({
+    const entregadores = await prisma.partner.findMany({
       where: {
         available: true,
         currentLat: { not: null },
@@ -160,11 +160,11 @@ async function tentarReiniciarFila(deliveryId) {
   }
 }
 
-function verificarSePodeVerEntrega(delivery, deliveryPersonId) {
+function verificarSePodeVerEntrega(delivery, partnerId) {
   const agora = new Date();
   return (
-    delivery.reservedDeliveryPersonId === null ||
-    (delivery.reservedDeliveryPersonId === deliveryPersonId && delivery.reservedUntil > agora)
+    delivery.reservedPartnerId === null ||
+    (delivery.reservedPartnerId === partnerId && delivery.reservedUntil > agora)
   );
 }
 

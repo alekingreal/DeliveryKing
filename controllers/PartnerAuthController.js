@@ -10,7 +10,7 @@ const loginEntregador = async (req, res) => {
     cpf = String(cpf).replace(/\D/g, '');
     phone = String(phone).replace(/\D/g, '');
 
-    const entregador = await prisma.deliveryPerson.findFirst({ where: { cpf, phone } });
+    const entregador = await prisma.partner.findFirst({ where: { cpf, phone } });
     if (!entregador) return res.status(401).json({ message: 'Entregador não encontrado' });
 
     const token = jwt.sign(
@@ -22,7 +22,7 @@ const loginEntregador = async (req, res) => {
     return res.json({
       message: 'Login realizado com sucesso!',
       token,
-      deliveryPerson: {
+      partner: {
         id: entregador.id,
         userId: entregador.userId,
         name: entregador.name

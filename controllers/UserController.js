@@ -50,7 +50,7 @@ const getUserById = async (req, res) => {
         phone: true,
         city: true,
         avatarUrl: true,
-        deliveryPerson: true
+        partner: true
       }
     });
 

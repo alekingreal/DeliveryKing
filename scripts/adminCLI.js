@@ -4,7 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
-async function createOrAttachDeliveryPersonUser({ name, email, password, cpf, phone, city = 'Aracaju' }) {
+async function createOrAttachPartnerUser({ name, email, password, cpf, phone, city = 'Aracaju' }) {
   let user = await prisma.user.findFirst({
     where: { OR: [{ cpf }, { phone }, { email }] }
   });
@@ -45,16 +45,16 @@ async function createOrAttachDeliveryPersonUser({ name, email, password, cpf, ph
 
     console.log('✅ Usuário e entregador criados com sucesso!');
   } else {
-    console.log('⚠️ Usuário já existe, verificando DeliveryPerson...');
+    console.log('⚠️ Usuário já existe, verificando Partner...');
 
-    const existingDeliveryPerson = await prisma.deliveryPerson.findUnique({
+    const existingPartner = await prisma.partner.findUnique({
       where: { userId: user.id }
     });
 
-    if (existingDeliveryPerson) {
-      console.log('⚠️ Este usuário já possui DeliveryPerson vinculado.');
+    if (existingPartner) {
+      console.log('⚠️ Este usuário já possui Partner vinculado.');
     } else {
-      await prisma.deliveryPerson.create({
+      await prisma.partner.create({
         data: {
           userId: user.id,
           name,
@@ -74,7 +74,7 @@ async function createOrAttachDeliveryPersonUser({ name, email, password, cpf, ph
         }
       });
 
-      console.log('✅ DeliveryPerson criado e vinculado com sucesso!');
+      console.log('✅ Partner criado e vinculado com sucesso!');
     }
   }
 
@@ -98,4 +98,4 @@ node scripts/adminCLI.js "Tester DK" teste@deliveryking.com senha123 00000000000
 
 const [name, email, password, cpf, phone] = args;
 
-createOrAttachDeliveryPersonUser({ name, email, password, cpf, phone });
+createOrAttachPartnerUser({ name, email, password, cpf, phone });

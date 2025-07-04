@@ -50,7 +50,7 @@ async function iniciarReservaPassageiro(passageiroId) {
     return;
   }
 
-  const motoristasDisponiveis = await prisma.deliveryPerson.findMany({
+  const motoristasDisponiveis = await prisma.partner.findMany({
     where: {
       available: true,
       locationLat: { not: null },

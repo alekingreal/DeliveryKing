@@ -47,7 +47,7 @@ currentLng: { not: null },
       throw new Error(`Tipo de serviço inválido: ${tipoServico}`);
   }
 
-  const motoristas = await prisma.deliveryPerson.findMany({ where: filtros });
+  const motoristas = await prisma.partner.findMany({ where: filtros });
   const candidatos = [];
 
   for (const motorista of motoristas) {

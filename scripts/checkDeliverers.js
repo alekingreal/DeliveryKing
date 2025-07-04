@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 (async () => {
-  const todos = await prisma.deliveryPerson.findMany({
+  const todos = await prisma.partner.findMany({
     select: {
       id: true,
       name: true,

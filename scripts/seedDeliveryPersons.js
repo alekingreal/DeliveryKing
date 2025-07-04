@@ -1,10 +1,10 @@
-// backend/scripts/seedDeliveryPersons.js
+// backend/scripts/seedPartners.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function seed() {
   try {
-    await prisma.deliveryPerson.createMany({
+    await prisma.partner.createMany({
         data: [
           {
             name: "Carlos Silva",

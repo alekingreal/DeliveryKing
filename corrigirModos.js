@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function corrigirModos() {
-  await prisma.deliveryPerson.updateMany({
+  await prisma.partner.updateMany({
     data: { modoAtual: 'motoTaxi' }
   });
 

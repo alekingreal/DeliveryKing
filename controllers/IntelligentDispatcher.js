@@ -9,7 +9,7 @@ const { iniciarReservaPassageiro } = require('../utils/reservaPassageiroManager'
 
 async function tentarAtribuirPedido(order) {
   try {
-    const entregadores = await prisma.deliveryPerson.findMany({
+    const entregadores = await prisma.partner.findMany({
       where: {
         available: true,
         currentLat: { not: null },
@@ -81,8 +81,8 @@ async function tentarAtribuirPedido(order) {
   }
 }
 
-function iniciarTimerDeRota(deliveryId, deliveryPersonId) {
-  if (pendingTimers.has(deliveryPersonId)) return;
+function iniciarTimerDeRota(deliveryId, partnerId) {
+  if (pendingTimers.has(partnerId)) return;
 
   const timer = setTimeout(async () => {
     try {
@@ -94,21 +94,21 @@ function iniciarTimerDeRota(deliveryId, deliveryPersonId) {
 
       if (!delivery || delivery.status === 'em_rota' || delivery.status === 'cancelada' || delivery.status === 'finalizada') {
         // ✅ se já iniciou, cancelou ou finalizou, não precisa punir
-        pendingTimers.delete(deliveryPersonId);
+        pendingTimers.delete(partnerId);
         return;
       }
       
 
-      const entregador = await prisma.deliveryPerson.findUnique({
-        where: { id: deliveryPersonId }
+      const entregador = await prisma.partner.findUnique({
+        where: { id: partnerId }
       });
 
       const novoNivel = (entregador.punishmentLevel || 0) + 1;
       const minutosPunicao = novoNivel * 5;
       const fimPena = new Date(Date.now() + minutosPunicao * 60000);
 
-      await prisma.deliveryPerson.update({
-        where: { id: deliveryPersonId },
+      await prisma.partner.update({
+        where: { id: partnerId },
         data: {
           available: false,
           pending: 0,
@@ -133,11 +133,11 @@ function iniciarTimerDeRota(deliveryId, deliveryPersonId) {
 
       await prisma.delivery.delete({ where: { id: delivery.id } });
 
-      console.log(`⏰ Rota não iniciada. Punição de ${minutosPunicao}min para entregador ${deliveryPersonId}`);
+      console.log(`⏰ Rota não iniciada. Punição de ${minutosPunicao}min para entregador ${partnerId}`);
 
       if (delivery.orders.length > 0) {
         const pedidoBase = delivery.orders[0];
-        const entregadores = await prisma.deliveryPerson.findMany({
+        const entregadores = await prisma.partner.findMany({
           where: {
             available: true,
             currentLat: { not: null },
@@ -198,18 +198,18 @@ function iniciarTimerDeRota(deliveryId, deliveryPersonId) {
     } catch (err) {
       console.error('Erro ao punir entregador por inatividade:', err);
     } finally {
-      pendingTimers.delete(deliveryPersonId);
+      pendingTimers.delete(partnerId);
     }
   }, 5 * 60 * 1000);
 
-  pendingTimers.set(deliveryPersonId, timer);
+  pendingTimers.set(partnerId, timer);
 }
 
-function limparTimerDeRota(deliveryPersonId) {
-  const timer = pendingTimers.get(deliveryPersonId);
+function limparTimerDeRota(partnerId) {
+  const timer = pendingTimers.get(partnerId);
   if (timer) {
     clearTimeout(timer);
-    pendingTimers.delete(deliveryPersonId);
+    pendingTimers.delete(partnerId);
   }
 }
 

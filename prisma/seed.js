@@ -38,9 +38,9 @@ async function main() {
     }
   });
 
-  // Criar os DeliveryPersons associados
+  // Criar os Partners associados
   for (let i = 0; i < usuariosCriados.length; i++) {
-    await prisma.deliveryPerson.create({
+    await prisma.partner.create({
       data: {
         userId: usuariosCriados[i].id,
         name: usuariosCriados[i].name,
@@ -94,9 +94,9 @@ await prisma.user.createMany({
     }
   });
   
-  // Criar os DeliveryPersons para delivery-king
+  // Criar os Partners para delivery-king
   for (let i = 0; i < usuariosDelivery.length; i++) {
-    await prisma.deliveryPerson.create({
+    await prisma.partner.create({
       data: {
         userId: usuariosDelivery[i].id,
         name: usuariosDelivery[i].name,

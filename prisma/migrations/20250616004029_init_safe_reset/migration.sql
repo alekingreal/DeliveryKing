@@ -46,7 +46,7 @@ CREATE TABLE "Product" (
 );
 
 -- CreateTable
-CREATE TABLE "DeliveryPerson" (
+CREATE TABLE "Partner" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
@@ -77,19 +77,19 @@ CREATE TABLE "DeliveryPerson" (
     "currentLng" DOUBLE PRECISION,
     "lastUpdatedAt" TIMESTAMP(3),
 
-    CONSTRAINT "DeliveryPerson_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Partner_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Delivery" (
     "id" SERIAL NOT NULL,
-    "deliveryPersonId" INTEGER,
+    "partnerId" INTEGER,
     "distanceKm" DOUBLE PRECISION NOT NULL,
     "fee" DOUBLE PRECISION NOT NULL,
     "status" TEXT NOT NULL,
-    "deliveryPersonPayout" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "partnerPayout" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "platformCommission" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "reservedDeliveryPersonId" INTEGER,
+    "reservedPartnerId" INTEGER,
     "cancelReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "destinoLat" DOUBLE PRECISION,
@@ -139,7 +139,7 @@ CREATE TABLE "Order" (
     "deliveryFee" DOUBLE PRECISION,
     "dropoffLat" DOUBLE PRECISION,
     "dropoffLng" DOUBLE PRECISION,
-    "reservedDeliveryPersonId" INTEGER,
+    "reservedPartnerId" INTEGER,
     "reservedUntil" TIMESTAMP(3),
     "restaurantId" INTEGER NOT NULL,
     "moedaPagamento" TEXT NOT NULL DEFAULT 'real',
@@ -498,7 +498,7 @@ CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 CREATE UNIQUE INDEX "User_inviteCode_key" ON "User"("inviteCode");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "DeliveryPerson_userId_key" ON "DeliveryPerson"("userId");
+CREATE UNIQUE INDEX "Partner_userId_key" ON "Partner"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "CarteiraDK_userId_key" ON "CarteiraDK"("userId");
@@ -525,13 +525,13 @@ CREATE UNIQUE INDEX "LimiteSaqueDK_userId_key" ON "LimiteSaqueDK"("userId");
 ALTER TABLE "Product" ADD CONSTRAINT "Product_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DeliveryPerson" ADD CONSTRAINT "DeliveryPerson_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Partner" ADD CONSTRAINT "Partner_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_deliveryPersonId_fkey" FOREIGN KEY ("deliveryPersonId") REFERENCES "DeliveryPerson"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_reservedDeliveryPersonId_fkey" FOREIGN KEY ("reservedDeliveryPersonId") REFERENCES "DeliveryPerson"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_reservedPartnerId_fkey" FOREIGN KEY ("reservedPartnerId") REFERENCES "Partner"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

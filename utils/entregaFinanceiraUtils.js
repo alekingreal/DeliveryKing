@@ -71,11 +71,11 @@ async function processarPagamentoEntrega(deliveryId) {
     where: { id: deliveryId },
     include: {
       orders: true,
-      deliveryPerson: true
+      partner: true
     }
   });
 
-  if (!entrega || !entrega.deliveryPerson) {
+  if (!entrega || !entrega.partner) {
     throw new Error('Entrega ou entregador não encontrados.');
   }
 
@@ -89,7 +89,7 @@ async function processarPagamentoEntrega(deliveryId) {
   await prisma.$transaction(async (tx) => {
     await tx.transacaoDK.create({
       data: {
-        userId: entrega.deliveryPerson.userId,
+        userId: entrega.partner.userId,
         tipo: 'pagamento_entrega',
         valorDK,
         valorReal: totalReais,
@@ -98,9 +98,9 @@ async function processarPagamentoEntrega(deliveryId) {
     });
 
     await tx.carteiraDK.upsert({
-      where: { userId: entrega.deliveryPerson.userId },
+      where: { userId: entrega.partner.userId },
       update: { saldo: { increment: valorDK } },
-      create: { userId: entrega.deliveryPerson.userId, saldo: valorDK }
+      create: { userId: entrega.partner.userId, saldo: valorDK }
     });
   });
 
@@ -111,7 +111,7 @@ async function processarPagamentoEntrega(deliveryId) {
     console.log('➡️ userId (lojista):', order.userId);
     console.log('➡️ total do produto:', order.total);
     console.log('➡️ frete:', order.deliveryFee);
-    console.log('➡️ entregador userId:', entrega.deliveryPerson.userId);
+    console.log('➡️ entregador userId:', entrega.partner.userId);
 
 
 
@@ -120,7 +120,7 @@ async function processarPagamentoEntrega(deliveryId) {
       pedidoId: order.id,
       valorProduto: order.total,
       valorFrete: order.deliveryFee,
-      entregadorUserId: entrega.deliveryPerson.userId,
+      entregadorUserId: entrega.partner.userId,
       lojistaUserId: order.userId
     });
   }

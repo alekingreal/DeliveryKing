@@ -32,7 +32,7 @@ async function createRequest(req, res) {
 
     const raioBuscaKm = 5;
 
-    const entregadores = await prisma.deliveryPerson.findMany({
+    const entregadores = await prisma.partner.findMany({
       where: {
         available: true,
         locationLat: { not: null },
@@ -83,7 +83,7 @@ async function createRequest(req, res) {
         distanceKm,
         tempoParaIniciar: durationMin,
         fee,
-        reservedDeliveryPersonId: proximos[0]?.id,
+        reservedPartnerId: proximos[0]?.id,
         reservedUntil: new Date(Date.now() + 30 * 1000),
         passageiros: {
           create: {

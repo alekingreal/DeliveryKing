@@ -9,7 +9,7 @@ async function reset() {
     await prisma.carteiraDK.deleteMany();
     await prisma.order.deleteMany();
     await prisma.delivery.deleteMany();
-    await prisma.deliveryPerson.deleteMany();
+    await prisma.partner.deleteMany();
     await prisma.user.deleteMany();
 
     console.log("✅ Banco limpo com sucesso.");

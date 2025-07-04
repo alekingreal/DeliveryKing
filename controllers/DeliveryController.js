@@ -114,7 +114,7 @@ const completeDelivery = async (req, res) => {
     const delivery = await prisma.delivery.findUnique({
       where: { id },
       include: {
-        deliveryPerson: true,
+        partner: true,
         orders: true
       }
     });
@@ -131,8 +131,8 @@ const completeDelivery = async (req, res) => {
       data: { status: 'entregue' }
     });
 
-    const updatedDeliveryPerson = await prisma.deliveryPerson.update({
-      where: { id: delivery.deliveryPersonId },
+    const updatedDeliveryPerson = await prisma.partner.update({
+      where: { id: delivery.partnerId },
       data: {
         available: true,
         balance: { increment: delivery.fee },
@@ -150,7 +150,7 @@ const completeDelivery = async (req, res) => {
     await prisma.$transaction(async (tx) => {
       await tx.transacaoDK.create({
         data: {
-          userId: delivery.deliveryPerson.userId,
+          userId: delivery.partner.userId,
           tipo: 'pagamento_entrega',
           valorDK,
           valorReal: totalReais,
@@ -159,9 +159,9 @@ const completeDelivery = async (req, res) => {
       });
 
       await tx.carteiraDK.upsert({
-        where: { userId: delivery.deliveryPerson.userId },
+        where: { userId: delivery.partner.userId },
         update: { saldo: { increment: valorDK } },
-        create: { userId: delivery.deliveryPerson.userId, saldo: valorDK }
+        create: { userId: delivery.partner.userId, saldo: valorDK }
       });
     });
 
@@ -171,7 +171,7 @@ const completeDelivery = async (req, res) => {
         pedidoId: order.id,
         valorProduto: order.total,
         valorFrete: order.deliveryFee ?? 0,
-        entregadorUserId: delivery.deliveryPerson.userId,
+        entregadorUserId: delivery.partner.userId,
         lojistaUserId: order.restaurantId // ⚠️ aqui cuidado: ajustar caso tenha userId do restaurante
       });
     }
@@ -195,7 +195,7 @@ const getDeliveryHistory = async (req, res) => {
   try {
     const history = await prisma.delivery.findMany({
       where: {
-        deliveryPersonId: parseInt(id),
+        partnerId: parseInt(id),
         status: 'finalizada',
       },
       orderBy: { id: 'desc' },
@@ -213,13 +213,13 @@ const getAvailableDeliveries = async (req, res) => {
   await liberarTravados();
   console.log("🔁 Rodando liberarEntregadoresPunidos");
 
-  const { lat, lng, deliveryPersonId } = req.query;
+  const { lat, lng, partnerId } = req.query;
 
-  if (!deliveryPersonId) {
-    return res.status(400).json({ message: 'deliveryPersonId é obrigatório.' });
+  if (!partnerId) {
+    return res.status(400).json({ message: 'partnerId é obrigatório.' });
   }
 
-  const entregadorId = parseInt(deliveryPersonId);
+  const entregadorId = parseInt(partnerId);
   const agora = new Date();
 
   try {
@@ -227,7 +227,7 @@ const getAvailableDeliveries = async (req, res) => {
     const entregasReservadas = await prisma.delivery.findMany({
       where: {
         status: 'pendente',
-        deliveryPersonId: null,
+        partnerId: null,
         reservedDeliveryPersonId: entregadorId,
         reservedUntil: {
           gte: agora
@@ -253,7 +253,7 @@ const getAvailableDeliveries = async (req, res) => {
     const deliveries = await prisma.delivery.findMany({
       where: {
         status: 'pendente',
-        deliveryPersonId: null,
+        partnerId: null,
         reservedUntil: {
           lt: agora
         },
@@ -288,13 +288,13 @@ const getAvailableDeliveries = async (req, res) => {
 
 const acceptDelivery = async (req, res) => {
   const entregaId = parseInt(req.params.id);
-  const { deliveryPersonId } = req.body;
+  const { partnerId } = req.body;
 
-  if (!deliveryPersonId) {
-    return res.status(400).json({ message: 'deliveryPersonId é obrigatório' });
+  if (!partnerId) {
+    return res.status(400).json({ message: 'partnerId é obrigatório' });
   }
 
-  const parsedId = Number(deliveryPersonId);
+  const parsedId = Number(partnerId);
   if (isNaN(parsedId)) {
     return res.status(400).json({ message: 'ID do entregador inválido' });
   }
@@ -304,7 +304,7 @@ const acceptDelivery = async (req, res) => {
       where: { id: entregaId },
       data: {
         status: 'pendente',
-        deliveryPerson: {
+        partner: {
           connect: { id: parsedId }
         }
       },
@@ -338,16 +338,16 @@ const startDeliveryRoute = async (req, res) => {
       where: { id: parseInt(id) },
       include: {
         orders: true,
-        deliveryPerson: true
+        partner: true
       }
     });
 
     if (!delivery) return res.status(404).json({ message: 'Entrega não encontrada' });
-    if (!delivery.deliveryPersonId) {
+    if (!delivery.partnerId) {
       return res.status(400).json({ message: 'Nenhum entregador atribuído à entrega' });
     }
 
-    limparTimerDeRota(delivery.deliveryPersonId);
+    limparTimerDeRota(delivery.partnerId);
 
     let distanciaTotal = 0;
     let feeTotal = 0;
@@ -438,9 +438,9 @@ const startDeliveryRoute = async (req, res) => {
         distanceKm: distanciaTotal,
         fee: feeTotal,
         platformCommission: plataformaTotal,
-        deliveryPersonPayout: entregadorTotal,
+        partnerPayout: entregadorTotal,
         tempoParaIniciar: durationTotalMin,
-        deliveryPerson: {
+        partner: {
           update: {
             available: false,
             pending: { increment: entregadorTotal }
@@ -469,7 +469,7 @@ const listAllDeliveries = async (req, res) => {
     const deliveries = await prisma.delivery.findMany({
       orderBy: { id: 'desc' },
       include: {
-        deliveryPerson: true,
+        partner: true,
         orders: true
       }
     });
@@ -519,14 +519,14 @@ const cancelDeliveryRoute = async (req, res) => {
       }
     });
 
-    await prisma.deliveryPerson.update({
-      where: { id: delivery.deliveryPersonId },
+    await prisma.partner.update({
+      where: { id: delivery.partnerId },
       data: {
         available: false,
-        punishments: { increment: 1 },
-        pending: { decrement: delivery.deliveryPersonPayout || 0 }
+        punishments: { increment: 1 }
       }
     });
+    
 
     for (const pedido of delivery.orders) {
       await prisma.order.update({
@@ -554,7 +554,7 @@ const cancelDelivery = async (req, res) => {
   try {
     const delivery = await prisma.delivery.findUnique({
       where: { id: parseInt(id) },
-      include: { orders: true, deliveryPerson: true }
+      include: { orders: true, partner: true }
     });
 
     if (!delivery) return res.status(404).json({ message: 'Entrega não encontrada.' });
@@ -563,22 +563,21 @@ const cancelDelivery = async (req, res) => {
     
 
 
-    if (!delivery.deliveryPerson) {
+    if (!delivery.partner) {
       return res.status(400).json({ message: 'Entrega não está vinculada a nenhum entregador.' });
     }
-    const violacoes = delivery.deliveryPerson?.violations || 0;
+    const violacoes = delivery.partner?.violations || 0;
     
     const minutosPunicao = (violacoes + 1) * 5;
 
-    await prisma.deliveryPerson.update({
-      where: { id: delivery.deliveryPersonId },
+    await prisma.partner.update({
+      where: { id: delivery.partnerId },
       data: {
         available: false,
-        violations: { increment: 1 },
-        blockUntil: new Date(Date.now() + minutosPunicao * 60 * 1000),
-        pending: { decrement: delivery.deliveryPersonPayout || 0 }
+        punishments: { increment: 1 }
       }
     });
+    
 
     // Cancelar entrega
     await prisma.delivery.update({
@@ -586,7 +585,7 @@ const cancelDelivery = async (req, res) => {
       data: {
         status: 'cancelada',
         cancelReason: reason,
-        deliveryPersonId: null,
+        partnerId: null,
         reservedDeliveryPersonId: null,
         reservedUntil: null
       }
@@ -609,13 +608,13 @@ const cancelDelivery = async (req, res) => {
   }
 };
 const getPendingDeliveries = async (req, res) => {
-  const { deliveryPersonId } = req.query;
+  const { partnerId } = req.query;
 
-  if (!deliveryPersonId) {
-    return res.status(400).json({ message: 'deliveryPersonId é obrigatório' });
+  if (!partnerId) {
+    return res.status(400).json({ message: 'partnerId é obrigatório' });
   }
 
-  const parsedId = parseInt(deliveryPersonId);
+  const parsedId = parseInt(partnerId);
   if (isNaN(parsedId)) {
     return res.status(400).json({ message: 'ID do entregador inválido' });
   }
@@ -623,7 +622,7 @@ const getPendingDeliveries = async (req, res) => {
   try {
     const deliveries = await prisma.delivery.findMany({
       where: {
-        deliveryPersonId: parsedId,
+        partnerId: parsedId,
         status: 'pendente',
       },
       orderBy: {

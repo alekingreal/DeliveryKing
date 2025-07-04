@@ -28,7 +28,7 @@ const { calcularDistanciaKm } = require('../utils/deliveryUtils');
       pickupLng: pedido.pickupLng,
     });
 
-    const entregadores = await prisma.deliveryPerson.findMany({
+    const entregadores = await prisma.partner.findMany({
       where: {
         available: true,
         aprovado: true,

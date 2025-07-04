@@ -19,7 +19,12 @@ model User {
   email           String            @unique
   password        String
   city            String?
-  phoneTemp       String? // <- número temporário a confirmar
+  address         String?
+  bairro          String?
+  cep             String?
+  estado          String?
+  enderecoAtualizadoEm DateTime?
+  phoneTemp       String?
   cpf             String            @unique
   phone           String            @unique
   avatarUrl       String? 
@@ -27,7 +32,7 @@ model User {
   invitedBy       String?
   CarteiraDK      CarteiraDK?
   CarteiraReal    CarteiraReal?
-  deliveryPerson DeliveryPerson? @relation("DeliveryPersonUser")
+  partner         Partner? @relation("PartnerUser")
   DkCoinTransacao DkCoinTransacao[]
   flagsSuspeita   FlagSuspeita[]
   LimiteSaqueDK   LimiteSaqueDK?
@@ -42,7 +47,6 @@ model User {
   TransacaoReal   TransacaoReal[]
   codigoVerificacao CodigoVerificacao?
   recoveryTokens  RecoveryToken[]
-
 }
 
 model Restaurant {
@@ -66,7 +70,8 @@ model Product {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 }
 
-model DeliveryPerson {
+
+model Partner {
   id                       Int        @id @default(autoincrement())
   name                     String
   vehicle                  String
@@ -75,7 +80,6 @@ model DeliveryPerson {
   pending                  Float      @default(0.0)
   locationLat              Float?
   locationLng              Float?
-  cpf                      String
   punishmentLevel          Int        @default(0)
   violations               Int        @default(0)
   blockUntil               DateTime?
@@ -85,7 +89,7 @@ model DeliveryPerson {
   comprovanteResidenciaUrl String?
   fotoMotoristaUrl         String?
   fotoVeiculoUrl           String?
-  avatarUrl                String? 
+  avatarUrl                String?
   modoAtual                String?
   placaVeiculo             String?
   podeCarroTaxi            Boolean    @default(false)
@@ -98,19 +102,21 @@ model DeliveryPerson {
   lastUpdatedAt            DateTime?
   deliveries               Delivery[]
   reservedDeliveries       Delivery[] @relation("ReservedDelivery")
-  user                     User @relation("DeliveryPersonUser", fields: [userId], references: [id])
+  user                     User @relation("PartnerUser", fields: [userId], references: [id])
 
+  @@map("Partner") // 🔁 continua apontando para a tabela antiga
 }
+
 
 model Delivery {
   id                       Int             @id @default(autoincrement())
-  deliveryPersonId         Int?
+  partnerId         Int?
   distanceKm               Float
   fee                      Float
   status                   String
-  deliveryPersonPayout     Float           @default(0)
+  partnerPayout     Float           @default(0)
   platformCommission       Float           @default(0)
-  reservedDeliveryPersonId Int?
+  reservedPartnerId Int?
   cancelReason             String?
   createdAt                DateTime        @default(now())
   destinoLat               Float?
@@ -126,8 +132,8 @@ model Delivery {
   tempoParaIniciar         Float?
   restaurantId             Int
   reservedUntil            DateTime?
-  deliveryPerson           DeliveryPerson? @relation(fields: [deliveryPersonId], references: [id])
-  reservedDeliveryPerson   DeliveryPerson? @relation("ReservedDelivery", fields: [reservedDeliveryPersonId], references: [id])
+  partner           Partner? @relation(fields: [partnerId], references: [id])
+  reservedPartner   Partner? @relation("ReservedDelivery", fields: [reservedPartnerId], references: [id])
   restaurant               Restaurant      @relation(fields: [restaurantId], references: [id])
   orders                   Order[]
   passageiros              Passageiro[]
@@ -161,7 +167,7 @@ model Order {
   moedaPagamento  String    @default("real")
   dropoffLat      Float?
   dropoffLng      Float?
-  reservedDeliveryPersonId Int?
+  reservedPartnerId Int?
   reservedUntil   DateTime?
   restaurantId    Int
   valorPagoDK     Float     @default(0)  // 🔥 novo campo

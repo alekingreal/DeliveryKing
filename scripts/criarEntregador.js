@@ -13,7 +13,7 @@ async function main() {
     throw new Error('❌ Um ou mais usuários (1, 2, 3) não existem no banco. Crie-os antes de continuar.');
   }
 
-  await prisma.deliveryPerson.create({
+  await prisma.partner.create({
     data: {
       user: {
         create: {
@@ -39,7 +39,7 @@ async function main() {
   });
   
 
-  await prisma.deliveryPerson.create({
+  await prisma.partner.create({
     data: {
       user: {
         create: {
@@ -65,7 +65,7 @@ async function main() {
   });
   
 
-  await prisma.deliveryPerson.create({
+  await prisma.partner.create({
     data: {
       user: {
         create: {

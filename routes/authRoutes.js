@@ -19,13 +19,13 @@ router.get('/list', listUsers);
 
 
 
-router.post('/auth/send-code', AuthController.sendCode);
-router.post('/auth/verify-code', AuthController.verifyCode);
-router.post('/users/:userId/update-phone', updatePhone);
-router.put('/auth/update-phone/:userId', AuthController.updatePhone);
-router.post('/auth/confirmar-novo-telefone/:userId', AuthController.confirmarNovoTelefone);
-router.post('/auth/recuperar-acesso', AuthController.recuperarAcesso);
-router.get('/auth/validar-token', AuthController.validarToken);
+router.post('/send-code', AuthController.sendCode);
+router.post('/verify-code', AuthController.verifyCode);
+router.put('/update-phone/:userId', AuthController.updatePhone);
+router.post('/confirmar-novo-telefone/:userId', AuthController.confirmarNovoTelefone);
+router.post('/recuperar-acesso', AuthController.recuperarAcesso);
+router.get('/validar-token', AuthController.validarToken);
+router.put('/:id', AuthController.updateUserData);
 
 
 

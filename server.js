@@ -18,7 +18,7 @@ const requestRoutes = require('./routes/requestRoutes');
 const userRoutes = require('./routes/userRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const productRoutes = require('./routes/productRoutes');
-const deliveryPersonRoutes = require('./routes/deliveryPersonRoutes');
+const partnerRoutes = require('./routes/partnerRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
 const dkcoinRoutes = require('./routes/dkcoin.routes');
@@ -48,7 +48,7 @@ const recompraRoutes = require('./routes/recompra');
 const financeiroEntregaRoutes = require('./routes/financeiroEntrega');
 const realFinanceiroRoutes = require('./routes/realFinanceiro');
 const userAuthRoutes = require('./routes/userAuthRoutes');
-const deliveryPersonAuthRoutes = require('./routes/deliveryPersonAuthRoutes');
+const partnerAuthRoutes = require('./routes/partnerAuthRoutes');
 const webhookMercadoPago = require('./routes/webhook');
 const pagamentoRoutes = require('./routes/pagamento');
 const carteiraRoutes = require('./routes/carteiraRoutes');
@@ -93,7 +93,7 @@ app.use('/users', userRoutes);
 app.use('/restaurants', restaurantRoutes);
 app.use('/products', productRoutes);
 app.use('/produtos', productRoutes);
-app.use('/delivery-persons', deliveryPersonRoutes);
+app.use('/delivery-persons', partnerRoutes);
 app.use('/orders', orderRoutes);
 app.use('/deliveries', deliveryRoutes);
 app.use('/dkcoin', dkcoinRoutes);
@@ -111,7 +111,7 @@ app.use('/profile', profileRoutes);
 app.use('/transferencia', transferRoutes);
 app.use('/extrato', extratoRoutes);
 app.use('/auth', userAuthRoutes);
-app.use('/delivery-persons', deliveryPersonAuthRoutes);
+app.use('/delivery-persons', partnerAuthRoutes);
 app.use('/saques', saqueRoutes);
 app.use('/admin/saques', adminSaqueRoutes);
 app.use('/recompra', recompraRoutes);
@@ -126,6 +126,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/', authRoutes); // <- precisa estar registrado
 app.use('/whatsapp', whatsappRoutes);
 app.use('/', webhookWhatsApp);
+app.use('/', authRoutes);
 
 
 

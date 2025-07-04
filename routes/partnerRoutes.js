@@ -1,31 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const {
-  createDeliveryPerson,
+  createPartner,
   updateLocation,
-  getDeliveryPersonDeliveries,
-  getDeliveryPersonBalance,
+  getPartnerDeliveries,
+  getPartnerBalance,
   getDashboardInfo,
   getAdvancedDashboardInfo,  // <-- adiciona essa linha
-  getDeliveryPersonById,
-  getAllDeliveryPersons,
-  deleteAllDeliveryPersons,
-  getPunishedDeliveryPersons,
+  getPartnerById,
+  getAllPartners,
+  deleteAllPartners,
+  getPunishedPartners,
   listarPunidos,
-  ativarParaDelivery
-} = require('../controllers/DeliveryPersonController');
+  ativarParaDelivery,
+  uploadAvatar,
+  updateFotoVeiculo,
+} = require('../controllers/PartnerController');
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const upload = require('../middlewares/uploadMiddleware'); // certifique-se que o caminho está correto
-const { uploadAvatar } = require('../controllers/DeliveryPersonController');
 
 
 
 
 
 
-// ✅ ROTA NOVA: Buscar deliveryPersonId pelo userId (agora blindada)
+// ✅ ROTA NOVA: Buscar partnerId pelo userId (agora blindada)
 router.get('/by-user/:userId', async (req, res) => {
   const { userId } = req.params;
 
@@ -35,15 +36,15 @@ router.get('/by-user/:userId', async (req, res) => {
   }
 
   try {
-    const deliveryPerson = await prisma.deliveryPerson.findUnique({
+    const partner = await prisma.partner.findUnique({
       where: { userId: parsedUserId }
     });
 
-    if (!deliveryPerson) {
+    if (!partner) {
       return res.status(404).json({ error: 'Entregador não encontrado.' });
     }
 
-    res.json({ deliveryPersonId: deliveryPerson.id });
+    res.json({ partnerId: partner.id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erro interno no servidor' });
@@ -51,25 +52,35 @@ router.get('/by-user/:userId', async (req, res) => {
 });
 
 // ✅ ROTA LISTAR TODOS PRIMEIRO!
-router.get('/', getAllDeliveryPersons);
+router.get('/', getAllPartners);
 
 // Rotas específicas
-router.get('/punished', getPunishedDeliveryPersons);
+router.get('/punished', getPunishedPartners);
 router.get('/currently-punished', listarPunidos);
-router.delete('/all', deleteAllDeliveryPersons);
+router.delete('/all', deleteAllPartners);
 router.patch('/:id/ativar-delivery', ativarParaDelivery);
 
 // Depois, rotas com :id (agora já protegidas pelo middleware de typecast)
-router.get('/:id', getDeliveryPersonById);
+router.get('/:id', getPartnerById);
 router.patch('/:id/location', updateLocation);
-router.get('/:id/deliveries', getDeliveryPersonDeliveries);
-router.get('/:id/balance', getDeliveryPersonBalance);
+router.get('/:id/deliveries', getPartnerDeliveries);
+router.get('/:id/balance', getPartnerBalance);
 router.get('/:id/dashboard', getDashboardInfo);
 router.get('/:id/advanced-dashboard', getAdvancedDashboardInfo);
 
 
 // Criar entregador
-router.post('/', createDeliveryPerson);
+router.post(
+  '/',
+  upload.fields([
+    { name: 'avatar', maxCount: 1 },
+    { name: 'fotoVeiculo', maxCount: 1 },
+  ]),
+  createPartner
+);
+
 router.post('/update-location', updateLocation);
 router.post('/:id/avatar', upload.single('avatar'), uploadAvatar);
+router.post('/:id/foto-veiculo', upload.single('fotoVeiculo'), updateFotoVeiculo);
+
 module.exports = router;

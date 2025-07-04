@@ -7,11 +7,16 @@ const browserPath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrom
 let client = null;
 
 const inicializarCliente = async () => {
+  if (process.env.WPP_ENABLED !== 'true') {
+    console.log('⚠️ WPPConnect desativado via variável de ambiente.');
+    return;
+  }
+
   try {
     client = await wppconnect.create({
       session: 'deliveryking',
       folderNameToken: 'tokens',
-      headless: false, // queremos ver o navegador abrindo!
+      headless: false,
       browserExecutablePath: browserPath,
       useChrome: true,
       catchQR: (base64Qrimg, asciiQR) => {
@@ -29,17 +34,13 @@ const inicializarCliente = async () => {
         '--disable-blink-features=TrustedTypes'
       ]
     });
-    
+
     console.log('✅ Cliente WhatsApp inicializado com sucesso!');
 
-    // 🚨 Força abertura de uma conversa real com uma mensagem qualquer
-    const msgFake = `🤖 Inicialização do bot concluída com sucesso`;
-    await client.sendText('5579998192216@c.us', msgFake); // pode ser qualquer contato real ou seu número
+    await client.sendText('5579998192216@c.us', '🤖 Inicialização do bot concluída com sucesso');
 
-    // Espera 2 segundos para garantir que a conversa foi aberta corretamente
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Agora sim registramos os listeners
     client.onMessage(async (message) => {
       const conteudo = message.body.trim().toLowerCase();
 

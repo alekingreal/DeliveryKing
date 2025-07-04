@@ -3,11 +3,11 @@ const prisma = new PrismaClient();
 const { getTaxaCambioUSD_BRL } = require('../utils/cotacaoUtils');  // já vamos usar tua função existente
 
 const registrarPagamentoEntrega = async (req, res) => {
-  const { deliveryPersonId } = req.body;
+  const { partnerId } = req.body;
 
   try {
-    const entregador = await prisma.deliveryPerson.findUnique({
-      where: { id: deliveryPersonId },
+    const entregador = await prisma.partner.findUnique({
+      where: { id: partnerId },
       include: {
         deliveries: {
           where: { status: 'finalizada' },

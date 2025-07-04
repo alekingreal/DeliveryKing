@@ -4,59 +4,66 @@ const path = require('path'); // ✅ necessário se for fazer manipulação extr
 
 
 // ✅ Criar entregador
-const createDeliveryPerson = async (req, res) => {
-  const {
-    userId, name, cpf, phone, vehicle,
-    locationLat, locationLng,
-    available = true, aprovado = false,
-    podeMotoTaxi = false, podeCarroTaxi = false, podeDelivery = false
-  } = req.body;
-
-  if (!name || !cpf || !phone || !vehicle || !locationLat || !locationLng) {
-    return res.status(400).json({ message: 'Campos obrigatórios ausentes!' });
-  }
-
+const createPartner = async (req, res) => {
   try {
-    const newDeliveryPerson = await prisma.deliveryPerson.create({
+    const { userId, tipoVeiculo, placa } = req.body;
+    let { modos } = req.body;
+
+    console.log('🧾 Body:', req.body);
+    console.log('📸 Files:', req.files);
+
+    // Garante que `modos` seja array, mesmo que venha um único valor
+    if (!Array.isArray(modos)) {
+      modos = modos ? [modos] : [];
+    }
+
+    if (!userId || !tipoVeiculo || !placa || !req.files?.avatar || !req.files?.fotoVeiculo) {
+      return res.status(400).json({ message: 'Campos obrigatórios ausentes.' });
+    }
+
+    const avatarFile = req.files.avatar[0];
+    const veiculoFile = req.files.fotoVeiculo[0];
+
+    const baseUrl = 'https://deliveryking.onrender.com';
+
+    const avatarUrl = `${baseUrl}/uploads/avatars/${avatarFile.filename}`;
+    const fotoVeiculoUrl = `${baseUrl}/uploads/veiculos/${veiculoFile.filename}`;
+
+    const novo = await prisma.partner.create({
       data: {
-        userId,
-        name,
-        cpf,
-        phone,
-        vehicle,
-        locationLat,
-        locationLng,
-        available,
-        aprovado,
-        podeMotoTaxi,
-        podeCarroTaxi,
-        podeDelivery,
-        balance: 0
-      }
+        userId: parseInt(userId), // aqui tem que ter certeza de que não está vindo ""
+        tipoVeiculo,
+        placa,
+        avatarUrl,
+        fotoVeiculoUrl,
+        modoAtual: modos[0] || null,
+        modosPermitidos: modos,
+      },
     });
 
-    res.status(201).json(newDeliveryPerson);
+    return res.status(201).json(novo);
   } catch (error) {
-    console.error('Erro ao criar entregador:', error);
-    res.status(500).json({ message: 'Erro ao criar entregador' });
+    console.error('❌ Erro ao criar entregador:', error);
+    return res.status(500).json({ message: 'Erro interno ao criar entregador.' });
   }
 };
+
 
 
 // ✅ Atualizar localização do entregador
 const updateLocation = async (req, res) => {
 
-  const { deliveryPersonId, lat, lng } = req.body;
-  console.log(`📍 Atualizando localização de ${deliveryPersonId}: ${lat}, ${lng}`);
-  if (!deliveryPersonId || !lat || !lng) {
+  const { partnerId, lat, lng } = req.body;
+  console.log(`📍 Atualizando localização de ${partnerId}: ${lat}, ${lng}`);
+  if (!partnerId || !lat || !lng) {
    
 
-    return res.status(400).json({ message: 'Campos obrigatórios: deliveryPersonId, lat, lng' });
+    return res.status(400).json({ message: 'Campos obrigatórios: partnerId, lat, lng' });
   }
 
   try {
-    const updated = await prisma.deliveryPerson.update({
-      where: { id: parseInt(deliveryPersonId) },
+    const updated = await prisma.partner.update({
+      where: { id: parseInt(partnerId) },
       data: {
         currentLat: parseFloat(lat),
         currentLng: parseFloat(lng),
@@ -71,16 +78,36 @@ const updateLocation = async (req, res) => {
   }
 };
 
+const updateFotoVeiculo = async (req, res) => {
+  const { id } = req.params;
+  const file = req.file;
+
+  if (!file) return res.status(400).json({ message: 'Arquivo ausente' });
+
+  try {
+    const fotoVeiculoUrl = `https://deliveryking.onrender.com/uploads/veiculos/${file.filename}`;
+
+    await prisma.partner.update({
+      where: { id: parseInt(id) },
+      data: { fotoVeiculoUrl },
+    });
+
+    return res.json({ success: true, fotoVeiculoUrl });
+  } catch (err) {
+    console.error('Erro no upload de foto do veículo:', err);
+    return res.status(500).json({ message: 'Erro no upload de foto do veículo', error: err.message });
+  }
+};
 
 
 
 // ✅ Buscar entregas do entregador
-const getDeliveryPersonDeliveries = async (req, res) => {
+const getPartnerDeliveries = async (req, res) => {
   const { id } = req.params;
 
   try {
     const deliveries = await prisma.delivery.findMany({
-      where: { deliveryPersonId: parseInt(id) },
+      where: { partnerId: parseInt(id) },
       orderBy: { id: 'desc' }
     });
 
@@ -92,20 +119,20 @@ const getDeliveryPersonDeliveries = async (req, res) => {
 };
 
 // ✅ Consultar saldo do entregador
-const getDeliveryPersonBalance = async (req, res) => {
+const getPartnerBalance = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deliveryPerson = await prisma.deliveryPerson.findUnique({
+    const partner = await prisma.partner.findUnique({
       where: { id: parseInt(id) },
       select: { balance: true }
     });
 
-    if (!deliveryPerson) {
+    if (!partner) {
       return res.status(404).json({ message: 'Entregador não encontrado' });
     }
 
-    res.json({ balance: deliveryPerson.balance });
+    res.json({ balance: partner.balance });
   } catch (error) {
     console.error('Erro ao buscar saldo do entregador:', error);
     res.status(500).json({ message: 'Erro ao buscar saldo' });
@@ -116,44 +143,44 @@ const getDashboardInfo = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deliveryPerson = await prisma.deliveryPerson.findUnique({
+    const partner = await prisma.partner.findUnique({
       where: { id: parseInt(id) },
     });
 
-    if (!deliveryPerson) {
+    if (!partner) {
       return res.status(404).json({ message: 'Entregador não encontrado' });
     }
 
     const [entregasPendentes, entregasFinalizadas, ganhos] = await Promise.all([
       prisma.delivery.count({
         where: {
-          deliveryPersonId: parseInt(id),
+          partnerId: parseInt(id),
           status: 'pendente',
         },
       }),
       prisma.delivery.count({
         where: {
-          deliveryPersonId: parseInt(id),
+          partnerId: parseInt(id),
           status: 'finalizada',
         },
       }),
       prisma.delivery.aggregate({
         _sum: {
-          deliveryPersonPayout: true,
+          partnerPayout: true,
         },
         where: {
-          deliveryPersonId: parseInt(id),
+          partnerId: parseInt(id),
           status: 'finalizada',
         },
       }),
     ]);
 
     res.json({
-      entregador: deliveryPerson,
+      entregador: partner,
       resumo: {
         entregasPendentes,
         entregasFinalizadas,
-        ganhosTotais: ganhos._sum.deliveryPersonPayout || 0,
+        ganhosTotais: ganhos._sum.partnerPayout || 0,
       }
     });
 
@@ -163,38 +190,38 @@ const getDashboardInfo = async (req, res) => {
   }
 };
 
-const getDeliveryPersonById = async (req, res) => {
+const getPartnerById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deliveryPerson = await prisma.deliveryPerson.findUnique({
+    const partner = await prisma.partner.findUnique({
       where: { id: parseInt(id) },
     });
 
-    if (!deliveryPerson) {
+    if (!partner) {
       return res.status(404).json({ message: 'Entregador não encontrado' });
     }
 
-    res.json(deliveryPerson);
+    res.json(partner);
   } catch (error) {
     console.error('Erro ao buscar entregador:', error);
     res.status(500).json({ message: 'Erro ao buscar entregador' });
   }
 };
 // ✅ Listar todos os entregadores
-const getAllDeliveryPersons = async (req, res) => {
+const getAllPartners = async (req, res) => {
   try {
-    const deliveryPersons = await prisma.deliveryPerson.findMany();
-    res.json(deliveryPersons);
+    const partners = await prisma.partner.findMany();
+    res.json(partners);
   } catch (error) {
     console.error('Erro ao buscar entregadores:', error);
     res.status(500).json({ message: 'Erro ao buscar entregadores' });
   }
 };
 
-const deleteAllDeliveryPersons = async (req, res) => {
+const deleteAllPartners = async (req, res) => {
   try {
-    await prisma.deliveryPerson.deleteMany({});
+    await prisma.partner.deleteMany({});
     res.json({ message: '✅ Todos os entregadores foram deletados com sucesso!' });
   } catch (error) {
     console.error('Erro ao deletar entregadores:', error);
@@ -202,9 +229,9 @@ const deleteAllDeliveryPersons = async (req, res) => {
   }
 };
 
-const getPunishedDeliveryPersons = async (req, res) => {
+const getPunishedPartners = async (req, res) => {
   try {
-    const punished = await prisma.deliveryPerson.findMany({
+    const punished = await prisma.partner.findMany({
       where: {
         violations: { gt: 0 }
       },
@@ -229,7 +256,7 @@ const getPunishedDeliveryPersons = async (req, res) => {
 async function listarPunidos(req, res) {
   try {
     const agora = new Date();
-    const punidos = await prisma.deliveryPerson.findMany({
+    const punidos = await prisma.partner.findMany({
       where: {
         blockUntil: {
           gt: agora
@@ -253,7 +280,7 @@ const ativarParaDelivery = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const entregador = await prisma.deliveryPerson.update({
+    const entregador = await prisma.partner.update({
       where: { id: parseInt(id) },
       data: {
         aprovado: true,
@@ -272,17 +299,17 @@ const getAdvancedDashboardInfo = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deliveryPerson = await prisma.deliveryPerson.findUnique({
+    const partner = await prisma.partner.findUnique({
       where: { id: parseInt(id) },
     });
 
-    if (!deliveryPerson) {
+    if (!partner) {
       return res.status(404).json({ message: 'Entregador não encontrado' });
     }
 
     // Buscar saldo financeiro real (CarteiraDK)
     const carteira = await prisma.carteiraDK.findUnique({
-      where: { userId: deliveryPerson.userId },
+      where: { userId: partner.userId },
     });
 
     const saldoDK = carteira?.saldo || 0;
@@ -306,16 +333,16 @@ const getAdvancedDashboardInfo = async (req, res) => {
 
       const [ganhos, entregas] = await Promise.all([
         prisma.delivery.aggregate({
-          _sum: { deliveryPersonPayout: true },
+          _sum: { partnerPayout: true },
           where: {
-            deliveryPersonId: parseInt(id),
+            partnerId: parseInt(id),
             status: 'finalizada',
             createdAt: { gte: inicioDia, lte: fimDia },
           },
         }),
         prisma.delivery.count({
           where: {
-            deliveryPersonId: parseInt(id),
+            partnerId: parseInt(id),
             status: 'finalizada',
             createdAt: { gte: inicioDia, lte: fimDia },
           },
@@ -323,7 +350,7 @@ const getAdvancedDashboardInfo = async (req, res) => {
       ]);
 
       return {
-        ganho: ganhos._sum.deliveryPersonPayout || 0,
+        ganho: ganhos._sum.partnerPayout || 0,
         entrega: entregas
       };
     }));
@@ -355,25 +382,25 @@ const getAdvancedDashboardInfo = async (req, res) => {
 
 
 const uploadAvatar = async (req, res) => {
-  const { id } = req.params; // deliveryPerson ID
+  const { id } = req.params; // partner ID
   const file = req.file;
 
   if (!file) return res.status(400).json({ message: 'Arquivo ausente' });
 
   try {
-    const deliveryPerson = await prisma.deliveryPerson.findUnique({
+    const partner = await prisma.partner.findUnique({
       where: { id: parseInt(id) },
     });
 
-    if (!deliveryPerson || !deliveryPerson.userId) {
+    if (!partner || !partner.userId) {
       return res.status(404).json({ message: 'Entregador ou usuário não encontrado' });
     }
 
-    const avatarUrl = `http://192.168.1.75:3333/uploads/avatars/${file.filename}`;
+    const avatarUrl = `https://deliveryking.onrender.com/uploads/avatars/${file.filename}`;
 
     // Atualiza o campo avatarUrl da tabela USER, que é usada na Home/Login
     await prisma.user.update({
-      where: { id: deliveryPerson.userId },
+      where: { id: partner.userId },
       data: { avatarUrl },
     });
 
@@ -390,18 +417,19 @@ const uploadAvatar = async (req, res) => {
 
 module.exports = {
   ativarParaDelivery,
-  createDeliveryPerson,
+  createPartner,
   updateLocation,
-  getDeliveryPersonDeliveries,
-  getDeliveryPersonBalance,
+  getPartnerDeliveries,
+  getPartnerBalance,
   getDashboardInfo,
   getAdvancedDashboardInfo,
-  getDeliveryPersonById,
-  getAllDeliveryPersons,
-  deleteAllDeliveryPersons,
-  getPunishedDeliveryPersons,
+  getPartnerById,
+  getAllPartners,
+  deleteAllPartners,
+  getPunishedPartners,
   listarPunidos,
-  uploadAvatar, // ✅ inclua aqui!
+  uploadAvatar,
+  updateFotoVeiculo, // ✅ inclua aqui!
 
   
 };

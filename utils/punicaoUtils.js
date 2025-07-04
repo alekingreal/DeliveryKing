@@ -8,7 +8,7 @@ async function liberarEntregadoresPunidos() {
     console.log("🔍 Checando desbloqueio de entregadores às", agora.toISOString());
   
     // ✅ 1. Liberar punidos cujo tempo já passou
-    const punidosLiberados = await prisma.deliveryPerson.updateMany({
+    const punidosLiberados = await prisma.partner.updateMany({
       where: {
         blockUntil: {
           lte: agora,
@@ -23,7 +23,7 @@ async function liberarEntregadoresPunidos() {
     });
   
     // ✅ 2. Liberar travados sem punição (BUG fix permanente)
-    const travadosCorrigidos = await prisma.deliveryPerson.updateMany({
+    const travadosCorrigidos = await prisma.partner.updateMany({
       where: {
         blockUntil: null,
         available: false
@@ -42,7 +42,7 @@ async function liberarEntregadoresPunidos() {
     }
   
     // (Opcional) listar ainda punidos
-    const aindaPunidos = await prisma.deliveryPerson.findMany({
+    const aindaPunidos = await prisma.partner.findMany({
       where: {
         blockUntil: { not: null }
       },

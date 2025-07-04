@@ -20,7 +20,7 @@ async function limparEntregasPendentes() {
     const deleted = await prisma.delivery.deleteMany({
       where: {
         status: 'pendente',
-        deliveryPersonId: null,
+        partnerId: null,
       },
     });
 

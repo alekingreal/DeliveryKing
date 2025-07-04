@@ -5,11 +5,13 @@ const InviteService = require('../services/InviteService');
 const { gerarCodigo, salvarCodigo, verificarCodigo } = require('../utils/sendCode');
 //const { sendCodeViaWhatsApp } = require('../services/WhatsAppService');
 const { sendCodeMeta } = require('../services/MetaWhatsAppService');
-
+const { verificarComprovanteVencido } = require('../utils/verificacaoResidencia');
 
 
 const prisma = new PrismaClient();
 const crypto = require('crypto');
+
+
 
 
 const register = async (req, res) => {
@@ -53,6 +55,14 @@ const register = async (req, res) => {
         invitedBy: invitedBy || null
       },
     });
+    await prisma.carteiraDK.create({
+      data: {
+        userId: user.id,
+        saldo: 0,
+        updatedAt: new Date()
+      }
+    });
+    
 
     // 🚀 Chama o InviteService pra aplicar o bônus de indicação
     await InviteService.aplicarBonusIndicacao(invitedBy, user.id);
@@ -120,58 +130,73 @@ const listUsers = async (req, res) => {
 };
 
 const loginEntregador = async (req, res) => {
-  try {
-    let { cpf, phone } = req.body;
+  let { cpf, phone } = req.body;
 
-    if (!cpf || !phone) {
-      return res.status(400).json({ message: 'CPF e telefone são obrigatórios.' });
+  if (!cpf || !phone) {
+    return res.status(400).json({ message: 'CPF e telefone são obrigatórios.' });
+  }
+
+  cpf = String(cpf).replace(/\D/g, '');
+  phone = String(phone).replace(/\D/g, '');
+
+  try {
+    // 🔍 Primeiro busca o usuário com CPF + telefone
+    const user = await prisma.user.findFirst({
+      where: { cpf, phone }
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Usuário não encontrado com CPF e telefone' });
     }
 
-    // NORMALIZA OS DADOS:
-    cpf = String(cpf).replace(/\D/g, '');
-    phone = String(phone).replace(/\D/g, '');
-
-    const entregador = await prisma.deliveryPerson.findFirst({
-      where: {
-        cpf,
-        user: {
-          phone,
-        }
-      },
-      include: {
-        user: true
-      }
+    // 🔗 Agora busca o Partner com base no userId
+    const partner = await prisma.partner.findFirst({
+      where: { userId: user.id },
+      include: { user: true }
     });
     
-    
 
-    if (!entregador) {
-      return res.status(401).json({ message: 'Credenciais inválidas (entregador não encontrado).' });
+    if (!partner) {
+      return res.status(404).json({ message: 'Entregador não encontrado' });
     }
 
+    let precisaAtualizarEndereco = true;
+    if (user.enderecoAtualizadoEm) {
+      try {
+        precisaAtualizarEndereco = verificarComprovanteVencido(user);
+      } catch (err) {
+        console.warn('⚠️ Erro ao verificar comprovante de residência:', err);
+      }
+    }
+    console.log('✅ Login bem-sucedido para:', {
+      userId: user.id,
+      partnerId: partner.id,
+      partnerName: partner.name,
+      aprovado: partner.aprovado
+    });
     const token = jwt.sign(
-      { id: entregador.id, name: entregador.name },
+      { id: partner.id, name: partner.name || user.name },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
     return res.json({
-      message: 'Login realizado com sucesso!',
       token,
-      deliveryPerson: {
-        id: entregador.id,
-        userId: entregador.userId, // <-- aqui está a chave que faltava
-        name: entregador.name
-      }
+      precisaAtualizarEndereco,
+      partner,
+      user,
+      aprovado: partner.aprovado
     });
-    
 
   } catch (error) {
-    console.error('Erro no loginEntregador:', error);
-    return res.status(500).json({ message: 'Erro interno no servidor', error: error.message });
+    console.error('🔴 Erro no loginEntregador:', JSON.stringify(error, null, 2));
+    return res.status(500).json({
+      message: 'Erro interno no servidor',
+      error: error.message || 'Erro desconhecido',
+      stack: error.stack || null
+    });
   }
 };
-
 
 
 const updatePhone = async (req, res) => {
@@ -190,8 +215,12 @@ const updatePhone = async (req, res) => {
 
     await prisma.user.update({
       where: { id: parseInt(userId) },
-      data: { phoneTemp: newPhone }
+      data: {
+        phoneTemp: newPhone
+      },
     });
+    
+    
 
     const codigo = gerarCodigo();
     await salvarCodigo(userId, codigo); // ✅ AGORA CORRETO
@@ -246,26 +275,26 @@ const sendCode = async (req, res) => {
     cpf = cpf.replace(/\D/g, '');
     phone = phone.replace(/\D/g, '');
 
-    const entregador = await prisma.deliveryPerson.findFirst({
-      where: {
-        cpf,
-        user: {
-          phone,
-        },
-      },
-      include: { user: true },
+    // 🔍 Busca o usuário com CPF e telefone
+    const user = await prisma.user.findFirst({
+      where: { cpf, phone }
     });
-    
-    if (!entregador) {
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuário não encontrado' });
+    }
+
+    // 🔗 Busca o partner usando o userId
+    const partner = await prisma.partner.findFirst({ where: { userId: user.id } });
+
+
+    if (!partner) {
       return res.status(404).json({ success: false, message: 'Entregador não encontrado' });
     }
 
-    const userId = entregador.userId;
     const codigo = gerarCodigo();
-    await salvarCodigo(userId, codigo);
-    //await sendCodeViaWhatsApp(phone, codigo);
-    await sendCodeMeta(phone, codigo);
-
+    await salvarCodigo(user.id, codigo);
+    await sendCodeMeta(phone, codigo); // ✅ ou sendCodeViaWhatsApp
 
     return res.json({ success: true });
   } catch (error) {
@@ -273,6 +302,7 @@ const sendCode = async (req, res) => {
     res.status(500).json({ success: false, message: 'Erro interno ao enviar código' });
   }
 };
+
 
 
 
@@ -287,38 +317,40 @@ const verifyCode = async (req, res) => {
     cpf = cpf.replace(/\D/g, '');
     phone = phone.replace(/\D/g, '');
 
-    const entregador = await prisma.deliveryPerson.findFirst({
-      where: {
-        cpf,
-        user: { phone }
-      },
-      include: { user: true }
+    const user = await prisma.user.findFirst({
+      where: { cpf, phone }
     });
-    
 
-    if (!entregador) {
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    const partner = await prisma.partner.findUnique({
+      where: { userId: user.id }
+    });
+
+    if (!partner) {
       return res.status(404).json({ message: 'Entregador não encontrado' });
     }
 
-    const userId = entregador.userId;
-    const isValid = await verificarCodigo(userId, code);
+    const isValid = await verificarCodigo(user.id, code);
     if (!isValid) {
       return res.status(401).json({ message: 'Código inválido ou expirado.' });
     }
 
     const token = jwt.sign(
-      { id: entregador.id, name: entregador.name },
+      { id: partner.id, name: partner.name },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
     return res.json({
       token,
-      deliveryPerson: {
-        id: entregador.id,
-        userId: entregador.userId,
-        name: entregador.name,
-        modoAtual: entregador.modoAtual || null
+      partner: {
+        id: partner.id,
+        userId: partner.userId,
+        name: partner.name,
+        modoAtual: partner.modoAtual || null
       }
     });
 
@@ -327,6 +359,7 @@ const verifyCode = async (req, res) => {
     res.status(500).json({ message: 'Erro interno na verificação' });
   }
 };
+
 
 // AuthController.js
 const validarToken = async (req, res) => {
@@ -398,6 +431,37 @@ await transporter.sendMail({
     return res.status(500).json({ message: 'Erro ao gerar link de acesso' });
   }
 };
+const updateUserData = async (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { name, email, city, address, bairro } = req.body;
+
+
+  try {
+    console.log('📦 Atualizando dados do usuário:', {
+      name, email, city, address, bairro
+    });
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name,
+        email,
+        city,
+        address,
+        bairro,
+        enderecoAtualizadoEm: new Date(),
+        comprovanteResidenciaStatus: 'pendente'
+      }
+      
+      
+    });
+
+    res.status(200).json({ message: 'Dados atualizados com sucesso' });
+  } catch (error) {
+    console.error('Erro ao atualizar usuário:', error);
+    res.status(500).json({ message: 'Erro ao atualizar dados do usuário' });
+  }
+};
 
 module.exports = {
   register,
@@ -409,6 +473,7 @@ module.exports = {
   verifyCode,
   updatePhone,
   confirmarNovoTelefone,
+  updateUserData,
   validarToken,
   recuperarAcesso    
 

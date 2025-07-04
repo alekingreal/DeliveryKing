@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 
 async function liberarTodosPunidos() {
   try {
-    const resultado = await prisma.deliveryPerson.updateMany({
+    const resultado = await prisma.partner.updateMany({
         where: {
           blockUntil: {
             not: null

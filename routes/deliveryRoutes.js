@@ -5,7 +5,7 @@ const router = express.Router();
 
 const authMiddleware = require('../middlewares/authMiddleware');
 const DeliveryController = require('../controllers/DeliveryController');
-const DeliveryPersonController = require('../controllers/DeliveryPersonController');
+const PartnerController = require('../controllers/PartnerController');
 const { getDeliveryById } = require('../controllers/DeliveryController');
 
 // 📦 ROTAS DE PEDIDOS
@@ -79,7 +79,7 @@ router.delete('/all', authMiddleware, (req, res, next) => {
 
 // 👤 PERFIL DO ENTREGADOR (deve ficar no fim)
 
-router.get('/perfil/:id', authMiddleware, DeliveryPersonController.getDeliveryPersonById);
+router.get('/perfil/:id', authMiddleware, PartnerController.getPartnerById);
 router.get('/:id', getDeliveryById);
 
 module.exports = router;
