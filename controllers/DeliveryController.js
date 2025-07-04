@@ -131,7 +131,7 @@ const completeDelivery = async (req, res) => {
       data: { status: 'entregue' }
     });
 
-    const updatedDeliveryPerson = await prisma.partner.update({
+    const updatedpartner = await prisma.partner.update({
       where: { id: delivery.partnerId },
       data: {
         available: true,
@@ -179,7 +179,7 @@ const completeDelivery = async (req, res) => {
     res.json({
       message: 'Entrega finalizada e pagamentos (DK e Real) processados!',
       updatedDelivery,
-      updatedDeliveryPerson,
+      updatedpartner,
       financeiro: { totalReais, valorDK }
     });
 
@@ -228,7 +228,7 @@ const getAvailableDeliveries = async (req, res) => {
       where: {
         status: 'pendente',
         partnerId: null,
-        reservedDeliveryPersonId: entregadorId,
+        reservedpartnerId: entregadorId,
         reservedUntil: {
           gte: agora
         }
@@ -586,7 +586,7 @@ const cancelDelivery = async (req, res) => {
         status: 'cancelada',
         cancelReason: reason,
         partnerId: null,
-        reservedDeliveryPersonId: null,
+        reservedpartnerId: null,
         reservedUntil: null
       }
     });
