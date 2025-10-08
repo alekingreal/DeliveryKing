@@ -6,47 +6,47 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model CodigoVerificacao {
-  userId Int @id
+  userId Int    @id
   codigo String
-  user   User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 }
 
-
 model User {
-  id              Int               @id @default(autoincrement())
-  name            String
-  email           String            @unique
-  password        String
-  city            String?
-  address         String?
-  bairro          String?
-  cep             String?
-  estado          String?
+  id                   Int                @id @default(autoincrement())
+  name                 String
+  email                String             @unique
+  password             String
+  city                 String?
+  cpf                  String             @unique
+  phone                String             @unique
+  inviteCode           String?            @unique
+  invitedBy            String?
+  avatarUrl            String?
+  phoneTemp            String?
+  address              String?
+  bairro               String?
+  cep                  String?
   enderecoAtualizadoEm DateTime?
-  phoneTemp       String?
-  cpf             String            @unique
-  phone           String            @unique
-  avatarUrl       String? 
-  inviteCode      String?           @unique
-  invitedBy       String?
-  CarteiraDK      CarteiraDK?
-  CarteiraReal    CarteiraReal?
-  partner         Partner? @relation("PartnerUser")
-  DkCoinTransacao DkCoinTransacao[]
-  flagsSuspeita   FlagSuspeita[]
-  LimiteSaqueDK   LimiteSaqueDK?
-  LogFinanceiroDK LogFinanceiroDK[]
-  orders          Order[]
-  passageiros     Passageiro[]
-  Recebiveis      Recebivel[]
-  recompras       RecompraDK[]
-  rewards         RewardsDK?
-  saques          SaqueDK[]
-  TransacaoDK     TransacaoDK[]
-  TransacaoReal   TransacaoReal[]
-  codigoVerificacao CodigoVerificacao?
-  recoveryTokens  RecoveryToken[]
+  estado               String?
+  CarteiraDK           CarteiraDK?
+  CarteiraReal         CarteiraReal?
+  codigoVerificacao    CodigoVerificacao?
+  DkCoinTransacao      DkCoinTransacao[]
+  flagsSuspeita        FlagSuspeita[]
+  LimiteSaqueDK        LimiteSaqueDK?
+  LogFinanceiroDK      LogFinanceiroDK[]
+  orders               Order[]
+  partner              Partner?           @relation("PartnerUser")
+  passageiros          Passageiro[]
+  Recebiveis           Recebivel[]
+  recompras            RecompraDK[]
+  recoveryTokens       RecoveryToken[]
+  rewards              RewardsDK?
+  saques               SaqueDK[]
+  TransacaoDK          TransacaoDK[]
+  TransacaoReal        TransacaoReal[]
 }
 
 model Restaurant {
@@ -70,7 +70,6 @@ model Product {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 }
 
-
 model Partner {
   id                       Int        @id @default(autoincrement())
   name                     String
@@ -89,7 +88,6 @@ model Partner {
   comprovanteResidenciaUrl String?
   fotoMotoristaUrl         String?
   fotoVeiculoUrl           String?
-  avatarUrl                String?
   modoAtual                String?
   placaVeiculo             String?
   podeCarroTaxi            Boolean    @default(false)
@@ -100,43 +98,43 @@ model Partner {
   currentLat               Float?
   currentLng               Float?
   lastUpdatedAt            DateTime?
+  avatarUrl                String?
   deliveries               Delivery[]
   reservedDeliveries       Delivery[] @relation("ReservedDelivery")
-  user                     User @relation("PartnerUser", fields: [userId], references: [id])
+  user                     User       @relation("PartnerUser", fields: [userId], references: [id])
 
-  @@map("Partner") // 🔁 continua apontando para a tabela antiga
+  @@map("Partner")
 }
 
-
 model Delivery {
-  id                       Int             @id @default(autoincrement())
-  partnerId         Int?
-  distanceKm               Float
-  fee                      Float
-  status                   String
-  partnerPayout     Float           @default(0)
-  platformCommission       Float           @default(0)
-  reservedPartnerId Int?
-  cancelReason             String?
-  createdAt                DateTime        @default(now())
-  destinoLat               Float?
-  destinoLng               Float?
-  localPartidaLat          Float
-  localPartidaLng          Float
-  maxPessoas               Int?
-  tipoRota                 String?
-  tipoServico              String
-  updatedAt                DateTime        @updatedAt
-  dropoffLocation          String?
-  pickupLocation           String?
-  tempoParaIniciar         Float?
-  restaurantId             Int
-  reservedUntil            DateTime?
-  partner           Partner? @relation(fields: [partnerId], references: [id])
-  reservedPartner   Partner? @relation("ReservedDelivery", fields: [reservedPartnerId], references: [id])
-  restaurant               Restaurant      @relation(fields: [restaurantId], references: [id])
-  orders                   Order[]
-  passageiros              Passageiro[]
+  id                 Int          @id @default(autoincrement())
+  partnerId          Int?
+  distanceKm         Float
+  fee                Float
+  status             String
+  partnerPayout      Float        @default(0)
+  platformCommission Float        @default(0)
+  reservedPartnerId  Int?
+  cancelReason       String?
+  createdAt          DateTime     @default(now())
+  destinoLat         Float?
+  destinoLng         Float?
+  localPartidaLat    Float
+  localPartidaLng    Float
+  maxPessoas         Int?
+  tipoRota           String?
+  tipoServico        String
+  updatedAt          DateTime     @updatedAt
+  dropoffLocation    String?
+  pickupLocation     String?
+  tempoParaIniciar   Float?
+  restaurantId       Int?
+  reservedUntil      DateTime?
+  partner            Partner?     @relation(fields: [partnerId], references: [id])
+  reservedPartner    Partner?     @relation("ReservedDelivery", fields: [reservedPartnerId], references: [id])
+  restaurant         Restaurant?  @relation(fields: [restaurantId], references: [id])
+  orders             Order[]
+  passageiros        Passageiro[]
 }
 
 model Passageiro {
@@ -152,31 +150,31 @@ model Passageiro {
 }
 
 model Order {
-  id              Int       @id @default(autoincrement())
-  total           Float
-  deliveryId      Int?
-  dropoffLocation String
-  pickupLocation  String
-  entregaVia      String    @default("manual")
-  platformCommission Float  @default(0)
-  pickupLat       Float?
-  pickupLng       Float?
-  statusCliente   OrderClienteStatus @default(aguardando)
-  status          OrderStatus
-  deliveryFee     Float?
-  moedaPagamento  String    @default("real")
-  dropoffLat      Float?
-  dropoffLng      Float?
-  reservedPartnerId Int?
-  reservedUntil   DateTime?
-  restaurantId    Int
-  valorPagoDK     Float     @default(0)  // 🔥 novo campo
-  valorPagoReal   Float     @default(0)  // 🔥 novo campo
-  valorPagoCartao Float     @default(0)  // 🔥 novo campo
-  delivery        Delivery? @relation(fields: [deliveryId], references: [id])
-  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
-  userId          Int
-  user            User      @relation(fields: [userId], references: [id])
+  id                 Int                @id @default(autoincrement())
+  userId             Int
+  total              Float
+  deliveryId         Int?
+  dropoffLocation    String
+  pickupLocation     String
+  entregaVia         String             @default("manual")
+  platformCommission Float              @default(0)
+  pickupLat          Float?
+  pickupLng          Float?
+  statusCliente      OrderClienteStatus @default(aguardando)
+  status             OrderStatus
+  deliveryFee        Float?
+  dropoffLat         Float?
+  dropoffLng         Float?
+  reservedPartnerId  Int?
+  reservedUntil      DateTime?
+  restaurantId       Int
+  moedaPagamento     String             @default("real")
+  valorPagoReal      Float              @default(0)
+  valorPagoDK        Float              @default(0)
+  valorPagoCartao    Float              @default(0)
+  delivery           Delivery?          @relation(fields: [deliveryId], references: [id])
+  restaurant         Restaurant         @relation(fields: [restaurantId], references: [id])
+  user               User               @relation(fields: [userId], references: [id])
 }
 
 model CarteiraDK {
@@ -454,13 +452,15 @@ model TesourariaDK {
   saldoLiquidoEmpresa Float?    @default(0)
   observacao          String?
 }
+
 model RecoveryToken {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id])
-  token      String   @unique
-  expiresAt  DateTime
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
 }
+
 enum OrderClienteStatus {
   aguardando
   em_producao

@@ -5,14 +5,18 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { Server } = require('socket.io');
 const path = require('path');
+
 const { liberarEntregadoresPunidos } = require('./utils/punicaoUtils');
 const { inicializarCliente } = require('./services/WhatsAppService');
 const reserva = require('./utils/reservaPassageiroManager');
 console.log('✅ iniciarReservaPassageiro é:', typeof reserva.iniciarReservaPassageiro);
+
+// Prisma p/ /diag/prisma
+const { PrismaClient, Prisma } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// Rotas
 const whatsappRoutes = require('./routes/whatsappRoutes');
-
-
-// Rotas importadas (mantendo tudo igual como já tinha)
 const authRoutes = require('./routes/authRoutes');
 const requestRoutes = require('./routes/requestRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -54,17 +58,14 @@ const pagamentoRoutes = require('./routes/pagamento');
 const carteiraRoutes = require('./routes/carteiraRoutes');
 const webhookWhatsApp = require('./routes/webhookWhatsApp');
 
-
-
-
-// Configurações iniciais
 dotenv.config();
 
+console.log('🟢 Boot DeliveryKing — commit:', process.env.RENDER_GIT_COMMIT || 'local');
 if (!process.env.GOOGLE_MAPS_API_KEY) {
-  console.error('❌ Variável GOOGLE_MAPS_API_KEY não foi definida no .env');
-  process.exit(1);
+  console.error('❌ GOOGLE_MAPS_API_KEY ausente');
+  // não mata o processo em prod; apenas loga:
+  // process.exit(1);
 }
-
 if (process.env.NODE_ENV !== 'production') {
   console.log('✅ Arquivo de ambiente carregado');
 }
@@ -72,21 +73,40 @@ if (process.env.NODE_ENV !== 'production') {
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' }
+  cors: { origin: '*', methods: ['GET','POST','PATCH','PUT','DELETE'], credentials: false },
+  transports: ['websocket', 'polling'],
 });
-global.io = io; // ⚠️ deixa o io global para usar nos seus outros arquivos
+global.io = io;
 
-// Atualiza cotação
-setInterval(() => {
-  atualizarCotacao(io);
-}, 60000);
-
-// Middlewares globais
+// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(paramsTypeCast);
 
-// Registro de rotas
+// 🔍 HEALTH/DIAG – GARANTIR QUE EXISTEM
+app.get('/health', (req, res) => {
+  res.json({
+    ok: true,
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'unknown',
+    prisma: Prisma?.prismaVersion || 'unknown'
+  });
+});
+
+app.get('/diag/prisma', async (req, res) => {
+  try {
+    const now = await prisma.$queryRaw`SELECT now() as now`;
+    res.json({ ok: true, now, db: process.env.DATABASE_URL ? 'configured' : 'missing' });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Rotas auxiliares
+const aiIntegrationRoutes = require('./routes/aiIntegrationRoutes');
+app.use('/ai', aiIntegrationRoutes);
+
+// Registro de rotas principais
 app.use('/auth', authRoutes);
 app.use('/requests', requestRoutes);
 app.use('/users', userRoutes);
@@ -123,26 +143,29 @@ app.use('/webhook', webhookMercadoPago);
 app.use('/pagamento', pagamentoRoutes);
 app.use('/carteira', carteiraRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/', authRoutes); // <- precisa estar registrado
+app.use('/', authRoutes);
 app.use('/whatsapp', whatsappRoutes);
 app.use('/', webhookWhatsApp);
-app.use('/', authRoutes);
 
-
-
-// Rotas de teste
+// Rota raiz
 app.get('/', (req, res) => res.send('🚀 DeliveryKing API Online!'));
-app.get('/protected', authMiddleware, (req, res) => {
-  res.json({ message: 'Acesso autorizado!', user: req.user });
-});
 
-// WebSocket (Socket.IO)
+// Socket.IO
 io.on('connection', (socket) => {
-  console.log('🟢 Novo socket conectado:', socket.id);
+  console.log('🟢 Socket conectado:', socket.id);
+
+  // se preferir via auth:
+  const { partnerId, role } = socket.handshake.auth || {};
+  if (role === 'partner' && Number.isFinite(Number(partnerId))) {
+    socket.join(`entregador_${Number(partnerId)}`);
+    console.log('👤 partner join via auth:', partnerId);
+  }
 
   socket.on('registrar_entregador', (entregadorId) => {
-    console.log(`📡 Entregador ${entregadorId} registrado no socket`);
-    socket.join(`entregador_${entregadorId}`);  // <-- usamos o namespace correto
+    if (Number.isFinite(Number(entregadorId))) {
+      socket.join(`entregador_${Number(entregadorId)}`);
+      console.log(`📡 Entregador ${entregadorId} registrado no socket`);
+    }
   });
 
   socket.on('disconnect', () => {
@@ -150,7 +173,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Liberar entregadores punidos periodicamente
+// Jobs
 setInterval(() => {
   try {
     liberarEntregadoresPunidos();
@@ -159,11 +182,25 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
-// Inicia servidor
+setInterval(() => {
+  try {
+    atualizarCotacao(io);
+  } catch (err) {
+    console.error('❌ Erro atualizarCotacao:', err);
+  }
+}, 60 * 1000);
+
+// Start
 const PORT = process.env.PORT || 3333;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
+// WhatsApp
 (async () => {
-  await inicializarCliente(); // 🔒 Inicializa o cliente WhatsApp
+  try {
+    await inicializarCliente();
+  } catch (e) {
+    console.error('❌ WhatsApp init error:', e?.message);
+  }
 })();

@@ -228,7 +228,8 @@ const getAvailableDeliveries = async (req, res) => {
       where: {
         status: 'pendente',
         partnerId: null,
-        reservedpartnerId: entregadorId,
+        reservedPartnerId: entregadorId,
+
         reservedUntil: {
           gte: agora
         }
@@ -586,7 +587,7 @@ const cancelDelivery = async (req, res) => {
         status: 'cancelada',
         cancelReason: reason,
         partnerId: null,
-        reservedpartnerId: null,
+        reservedPartnerId: null,
         reservedUntil: null
       }
     });
