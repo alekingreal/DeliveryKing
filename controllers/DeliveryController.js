@@ -48,21 +48,36 @@ const createOrder = async (req, res) => {
     return res.status(500).json({ message: 'Erro ao criar entrega' });
   }
 };
+// controllers/DeliveryController.js
 const getDeliveryById = async (req, res) => {
   const { id } = req.params;
   try {
     const entrega = await prisma.delivery.findUnique({
       where: { id: parseInt(id) },
-      include: {
-        orders: true,
-      }
+      include: { orders: true, passageiros: true }
     });
 
-    if (!entrega) {
-      return res.status(404).json({ error: 'Entrega não encontrada.' });
+    if (!entrega) return res.status(404).json({ error: 'Entrega não encontrada.' });
+
+    let ordersOut = entrega.orders || [];
+    if (ordersOut.length === 0 && entrega.tipoServico !== 'delivery') {
+      ordersOut = [{
+        id: 0,
+        pickupLat: entrega.localPartidaLat,
+        pickupLng: entrega.localPartidaLng,
+        dropoffLat: entrega.destinoLat,
+        dropoffLng: entrega.destinoLng,
+        pickupLocation: entrega.pickupLocation || 'Ponto de partida',
+        dropoffLocation: entrega.dropoffLocation || 'Destino',
+        deliveryFee: entrega.fee || 0,
+        restaurantName: (entrega.tipoServico || 'Transporte').toUpperCase(),
+        imagem: 'https://cdn-icons-png.flaticon.com/512/3075/3075977.png',
+      }];
     }
 
-    return res.json(entrega);
+    // 🔧 DEVOLVE com ordersOut (esse era o bug)
+    console.log('getDeliveryById→', entrega.id, entrega.tipoServico, 'ordersIn:', entrega.orders?.length || 0, 'ordersOut:', ordersOut.length);
+    return res.json({ ...entrega, orders: ordersOut });
   } catch (error) {
     console.error('Erro ao buscar entrega:', error);
     return res.status(500).json({ error: 'Erro interno do servidor.' });
@@ -608,6 +623,8 @@ const cancelDelivery = async (req, res) => {
     return res.status(500).json({ message: 'Erro interno ao cancelar entrega.' });
   }
 };
+// controllers/DeliveryController.js
+
 const getPendingDeliveries = async (req, res) => {
   const { partnerId } = req.query;
 
@@ -626,22 +643,36 @@ const getPendingDeliveries = async (req, res) => {
         partnerId: parsedId,
         status: 'pendente',
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
       include: {
-        orders: {
-          where: {
-            pickupLat: { not: null },
-            pickupLng: { not: null },
-            dropoffLat: { not: null },
-            dropoffLng: { not: null },
-          },
-        },
+        orders: true,
+        passageiros: true
       },
     });
 
-    res.json(deliveries);
+    // 🔧 injeta "orders" virtuais quando for corrida
+    const out = deliveries.map(d => {
+      if ((!d.orders || d.orders.length === 0) && d.tipoServico !== 'delivery') {
+        return {
+          ...d,
+          orders: [{
+            id: 0,
+            pickupLat: d.localPartidaLat,
+            pickupLng: d.localPartidaLng,
+            dropoffLat: d.destinoLat,
+            dropoffLng: d.destinoLng,
+            pickupLocation: d.pickupLocation || 'Ponto de partida',
+            dropoffLocation: d.dropoffLocation || 'Destino',
+            deliveryFee: d.fee || 0,
+            restaurantName: (d.tipoServico || 'Transporte').toUpperCase(),
+            imagem: 'https://cdn-icons-png.flaticon.com/512/3075/3075977.png',
+          }]
+        };
+      }
+      return d;
+    });
+
+    res.json(out);
   } catch (error) {
     console.error('Erro ao buscar entregas pendentes:', error);
     res.status(500).json({ message: 'Erro ao buscar entregas pendentes' });
